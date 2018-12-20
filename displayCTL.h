@@ -11,8 +11,4 @@ class DisplayCtl
     void SetArray(int a,int b,int c,int d);
     private:
     int _pattern[2][8];
-    
-    
-    
-
 };

@@ -13,7 +13,5 @@ class nixieControl
         void GetDisplayPattern(int order,int tubeNumber,int showNumber);
         void StartUpAnim();
         static void ApplyUpdate();
-    private:
-        
-    
+    private:   
 };
