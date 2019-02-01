@@ -8,7 +8,8 @@ class nixieControl
 {
        
     public:
-        int pattern[2][8];
+        int pattern[2][8];  //multi thread common
+        pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
         int main();
         void GetDisplayPattern(int order,int tubeNumber,int showNumber);
         void StartUpAnim();

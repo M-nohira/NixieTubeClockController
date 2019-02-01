@@ -1,44 +1,69 @@
 #include "displayCtl.h"
+#include "lib/wiringpi/wiringPi.h"
 
+#define NIXIE_ON_TIME   600
+#define NIXIE_OFF_TIME  400
 
-void DisplayCtl::main(int (*pattern[2])[8])
+void DisplayCtl::main(int (*pattern[2])[8],pthread_mutex_t *m)
 {
+    //GPIO設定関数
+    wiringPiSetupGpio();
+    pinMode(12,OUTPUT);
+    pinMode(16,OUTPUT);
+    pinMode(20,OUTPUT);
+    pinMode(21,OUTPUT);
+    pinMode(23,OUTPUT);
+    pinMode(24,OUTPUT);
+    pinMode(25,OUTPUT);
+    pinMode(8,OUTPUT);
+    pinMode(17,OUTPUT);
+    pinMode(27,OUTPUT);
+
+    //表示用ループ
     do
     {  
+        if(0 != pthread_mutex_trylock(m)) //アクセス権限が得られなかった場合はコピーを用いて表示
+        {
+            UpdateDisplay(_pattern);
+            return;
+        }
+
         if(_pattern == *pattern) continue;
         memcpy(_pattern,*pattern,sizeof(*pattern));
         UpdateDisplay(_pattern);
+
+        pthread_mutex_unlock(m);
     }while(true);
 }
 
-void DisplayCtl::SetNixie(int num,bool isTubeNum)
+void DisplayCtl::SetNixie(int num,bool isTube)
 {
-    if(isTubeNum == false)
+    if(isTube == false)
     {
         switch(num)
         {
             case 0:
-                SetArray(0,1,1,0);
+                SetTube(0,1,1,0);
             case 1:
-                SetArray(1,0,0,1);
+                SetTube(1,0,0,1);
             case 2:
-                SetArray(1,0,0,0);
+                SetTube(1,0,0,0);
             case 3:
-                SetArray(0,1,1,1);
+                SetTube(0,1,1,1);
             case 4:
-                SetArray(0,0,0,0);
+                SetTube(0,0,0,0);
             case 5:
-                SetArray(0,0,0,1);
+                SetTube(0,0,0,1);
             case 6:
-                SetArray(0,0,1,0);
+                SetTube(0,0,1,0);
             case 7:
-                SetArray(0,0,1,1);
+                SetTube(0,0,1,1);
             case 8:
-                SetArray(0,1,0,0);
+                SetTube(0,1,0,0);
             case 9:
-                SetArray(0,1,0,1);
+                SetTube(0,1,0,1);
             default:
-                SetArray(1,1,1,1);
+                SetTube(1,1,1,1);
         }
         return;
     }
@@ -46,38 +71,43 @@ void DisplayCtl::SetNixie(int num,bool isTubeNum)
     switch(num)
     {
         case 0:
-            SetArray(1,1,1,1);
+            SetNum(1,1,1,1);
         case 1:
-            SetArray(0,0,1,1);
+            SetNum(0,0,1,1);
         case 2:
-            SetArray(0,0,0,1);
+            SetNum(0,0,0,1);
         case 3:
-            SetArray(0,0,1,0);
+            SetNum(0,0,1,0);
         case 4:
-            SetArray(0,0,0,0);
+            SetNum(0,0,0,0);
         case 5:
-            SetArray(0,1,1,1);
+            SetNum(0,1,1,1);
         case 6:
-            SetArray(0,1,0,1);
+            SetNum(0,1,0,1);
         case 7:
-            SetArray(0,1,1,0);
+            SetNum(0,1,1,0);
         case 8:
-            SetArray(0,1,0,0);
+            SetNum(0,1,0,0);
         default:
-            SetArray(1,1,1,1);
+            SetNum(1,1,1,1);
     }        
     return;
 }
 
-void DisplayCtl::SetArray(int a,int b,int c,int d)
+void DisplayCtl::SetTube(int bcd1,int bcd2,int bcd3,int bcd4)
 {
-    int ret[4] = {1,1,1,1};//TODO 直接GPIOを制御する予定
-    ret[0] = a;
-    ret[1] = b;
-    ret[2] = c;
-    ret[3] = d;
+    digitalWrite(12,bcd1);
+    digitalWrite(16,bcd2);
+    digitalWrite(20,bcd3);
+    digitalWrite(21,bcd4);
+}
 
-    //return ret;
+int SetNum(int bcd1,int bcd2,int bcd3,int bcd4)
+{
+    digitalWrite(23,bcd1);
+    digitalWrite(24,bcd2);
+    digitalWrite(25,bcd3);
+    digitalWrite(8,bcd4);
 }
 
 int DisplayCtl::UpdateDisplay(int pattern[2][8])
@@ -90,9 +120,12 @@ int DisplayCtl::UpdateDisplay(int pattern[2][8])
         SetNixie(pattern[1][cnt],false);
 
         //ゴースト現象回避のために調整する必要アリ
+        delayMicroseconds(NIXIE_ON_TIME);//ON　時間
 
-
+        //表示を例外を用いて消す
         SetNixie(999,true);
         SetNixie(999,false);
+
+        delayMicroseconds(NIXIE_OFF_TIME); //OFF 時間
     }
 }

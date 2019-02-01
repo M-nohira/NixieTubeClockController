@@ -3,7 +3,8 @@
 
 int nixieControl::main()
 {
-    std::thread thread_Display(&ApplyUpdate);
+    //std::thread thread_Display(&ApplyUpdate);
+    std::thread thread_Display(&DisplayCtl::main,this,*pattern,&m);
     printf("Starting Display Thread...");
     thread_Display.join();
 }
@@ -11,8 +12,16 @@ int nixieControl::main()
 ///Imcomplete
 void nixieControl::GetDisplayPattern(int order, int tubeNumber,int showNumber)
 {
-    pattern[0][order] = tubeNumber;
-    pattern[1][order] = showNumber;
+    int base[2][8];
+    base[0][order] = tubeNumber;
+    base[1][order] = showNumber;
+    // ....
+
+    
+    //
+    pthread_mutex_lock(&m);
+    memcpy(pattern,base,sizeof(base));
+    pthread_mutex_unlock(&m);
 }
 
 void nixieControl::StartUpAnim()
